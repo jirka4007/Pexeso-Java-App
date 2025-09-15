@@ -1,0 +1,5 @@
+/* styles.css */
+
+.button:disabled {
+    -fx-opacity: 1.0;
+}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cz.pexeso.ui.ScoresController">
+    <top>
+        <Label text="Žebříček nejlepších výsledků" BorderPane.alignment="CENTER">
+            <font>
+                <Font name="System Bold" size="24.0" />
+            </font>
+        </Label>
+    </top>
+    <center>
+        <TableView fx:id="scoresTable" BorderPane.alignment="CENTER">
+            <columns>
+                <TableColumn fx:id="playerNameColumn" prefWidth="150.0" text="Jméno hráče" />
+                <TableColumn fx:id="movesColumn" prefWidth="75.0" text="Tahů" />
+                <TableColumn fx:id="timeColumn" prefWidth="100.0" text="Čas (s)" />
+                <TableColumn fx:id="gridSizeColumn" prefWidth="100.0" text="Velikost" />
+                <TableColumn fx:id="dateColumn" prefWidth="170.0" text="Datum" />
+            </columns>
+        </TableView>
+    </center>
+</BorderPane>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="cz.pexeso.ui.MainWindowController"
+            prefHeight="600.0" prefWidth="800.0"
+            fx:id="rootPane">
+    <left>
+        <VBox spacing="10" alignment="TOP_CENTER">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+            <Button text="Nová hra" onAction="#showGameBoard"/>
+            <Button fx:id="continueButton" text="Pokračovat" onAction="#continueGame"/>
+            <Button text="Skóre" onAction="#showScores"/>
+            <Button text="Správa témat" onAction="#showThemes"/>
+            <Button text="Nastavení"/>
+            <Button text="Ukončit hru" onAction="#exitGame"/>
+        </VBox>
+    </left>
+    <center>
+        <Label text="Vítejte ve hře Pexeso!"/>
+    </center>
+</BorderPane>
