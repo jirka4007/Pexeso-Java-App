@@ -96,7 +96,9 @@ public class MainWindowController implements Initializable {
     }
 
     public void showMainMenu() {
-        loadView("MainMenuView.fxml");
+        if (mainMenu != null) {
+            rootPane.setCenter(mainMenu);
+        }
         // Po návratu do menu znovu zkontrolujeme, zda existuje uložená hra
         if (gameStateService != null) {
             continueButton.setDisable(!gameStateService.gameStateExists());

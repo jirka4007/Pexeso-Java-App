@@ -72,6 +72,7 @@ public class GameBoardController implements Initializable {
     private double cardSize; // Nahrazení konstanty proměnnou
     private String playerName; // Pro uložení jména hráče na začátku hry
     private ScoreRepository scoreRepository;
+    private boolean isGameRestored = false;
 
     private MainWindowController mainWindowController;
 
@@ -114,6 +115,8 @@ public class GameBoardController implements Initializable {
     }
 
     public void startNewGame(int sloupce, int radky, Theme theme, String playerName) {
+        gameStateService.deleteSavedGame(); // Smažeme předchozí uloženou hru
+        this.isGameRestored = false;
         this.currentTheme = theme;
         this.pocetSloupcu = sloupce;
         this.pocetRadku = radky;
@@ -136,6 +139,7 @@ public class GameBoardController implements Initializable {
             int pocetParu = (sloupce * radky) / 2;
             karticky = gameService.vytvorNovouHru(pocetParu, theme);
             pocetTahu = 0;
+            elapsedSeconds.set(0); // Resetujeme čas pro novou hru
             tahyLabel.setText("0");
             mapaKaretNaTlacitka.clear();
 
@@ -144,7 +148,7 @@ public class GameBoardController implements Initializable {
             hraciPlochaGrid.getRowConstraints().clear();
 
             setupGameBoardUI();
-            startTimer();
+            startTimer(); // Tady se timer vytvoří a rovnou spustí
         } catch (GameSetupException e) {
             // Zobrazit alert uživateli
             System.err.println(e.getMessage());
@@ -187,9 +191,25 @@ public class GameBoardController implements Initializable {
 
     public void restoreGame(GameState gameState) {
         // Obnovit základní data
+        this.pocetSloupcu = gameState.getColumns();
+        this.pocetRadku = gameState.getRows();
         this.selectedGridSize = gameState.getGridSize();
         this.pocetTahu = gameState.getMoves();
         this.elapsedSeconds.set(gameState.getElapsedSeconds());
+        
+        tahyLabel.setText(String.valueOf(pocetTahu)); // Aktualizujeme zobrazení tahů
+
+        // --- Adaptivní velikost karet a mezer (chybělo při obnovení) ---
+        if (pocetSloupcu == 6) {
+            this.cardSize = 160.0;
+            hraciPlochaGrid.setHgap(10);
+            hraciPlochaGrid.setVgap(10);
+        } else { // Výchozí pro 4x4
+            this.cardSize = 240.0;
+            hraciPlochaGrid.setHgap(15);
+            hraciPlochaGrid.setVgap(15);
+        }
+        // -----------------------------------------------------------
         
         // Najít téma v databázi
         ThemeRepository themeRepository = new ThemeRepository();
@@ -205,13 +225,37 @@ public class GameBoardController implements Initializable {
                 PexesoImage img = currentTheme.getImages().stream()
                         .filter(i -> i.getId() == cs.getImageId()).findFirst().get();
                 Karticka k = new Karticka(img);
-                k.setStav(cs.getStatus());
+                
+                // Důležité: Nastavíme stav z uložené hry
+                // Odkryté karty vrátíme do stavu zakrytá, protože hra byla přerušena
+                if (cs.getStatus() == Karticka.StavKarty.ODKRYTA) {
+                    k.setStav(Karticka.StavKarty.ZAKRYTA);
+                } else {
+                    k.setStav(cs.getStatus());
+                }
+                
                 return k;
             }).collect(Collectors.toList());
         
         // Znovu vykreslit desku
         setupGameBoardUI();
-        startTimer();
+        
+        // Po vykreslení projdeme tlačítka a nastavíme jejich stav
+        mapaKaretNaTlacitka.forEach((karticka, button) -> {
+            if (karticka.getStav() == Karticka.StavKarty.SPAROVANA) {
+                Image predniStrana = new Image("file:" + karticka.getPexesoImage().getImagePath());
+                ((ImageView) button.getGraphic()).setImage(predniStrana);
+                button.setDisable(true);
+            }
+        });
+
+        startTimer(); // Vytvoříme a připravíme timer (automaticky se i spustí)
+        stopTimer(); // Ale hned ho zastavíme, aby čekal na první klik
+        
+        int minutes = elapsedSeconds.get() / 60;
+        int seconds = elapsedSeconds.get() % 60;
+        casLabel.setText(String.format("%02d:%02d", minutes, seconds));
+        isGameRestored = true; // Označíme, že hra byla obnovena
     }
 
     private Button createCardButton(Karticka karticka) {
@@ -230,6 +274,11 @@ public class GameBoardController implements Initializable {
     }
 
     private void handleCardClick(Karticka karticka, Button button) {
+        if (isGameRestored) {
+            timer.play(); // Spustíme časovač při prvním kliku po obnovení
+            isGameRestored = false; // A už to znovu neuděláme
+        }
+
         GameService.TahResult vysledek = gameService.zpracujTah(karticka);
 
         if (vysledek == GameService.TahResult.NEPLATNY_TAH) {
@@ -288,6 +337,8 @@ public class GameBoardController implements Initializable {
         gameState.setGridSize(selectedGridSize);
         gameState.setMoves(pocetTahu);
         gameState.setElapsedSeconds(elapsedSeconds.get());
+        gameState.setColumns(pocetSloupcu);
+        gameState.setRows(pocetRadku);
         
         List<GameState.CardState> cardStates = karticky.stream()
                 .map(k -> new GameState.CardState(k.getPexesoImage().getId(), k.getStav()))
@@ -296,8 +347,8 @@ public class GameBoardController implements Initializable {
         
         gameStateService.saveGame(gameState);
         
-        // Návrat do hlavního menu (zjednodušeně)
-        ((BorderPane) hraciPlochaGrid.getParent()).setCenter(new Label("Hra uložena. Vraťte se do menu."));
+        // Návrat do hlavního menu
+        mainWindowController.showMainMenu();
     }
 
     private void handleGameOver() {
@@ -327,7 +378,7 @@ public class GameBoardController implements Initializable {
         if (timer != null) {
             timer.stop();
         }
-        elapsedSeconds.set(0);
+        // elapsedSeconds.set(0); // Toto patří jen do startNewGame
         timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
             elapsedSeconds.set(elapsedSeconds.get() + 1);
             int minutes = elapsedSeconds.get() / 60;
@@ -335,7 +386,7 @@ public class GameBoardController implements Initializable {
             casLabel.setText(String.format("%02d:%02d", minutes, seconds));
         }));
         timer.setCycleCount(Timeline.INDEFINITE);
-        timer.play();
+        timer.play(); // Timer se po vytvoření hned spustí
     }
 
     private void stopTimer() {

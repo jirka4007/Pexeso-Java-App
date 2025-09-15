@@ -20,7 +20,6 @@
             <Button fx:id="continueButton" text="Pokračovat" onAction="#continueGame"/>
             <Button text="Skóre" onAction="#showScores"/>
             <Button text="Správa témat" onAction="#showThemes"/>
-            <Button text="Nastavení"/>
             <Button text="Ukončit hru" onAction="#exitGame"/>
         </VBox>
     </left>
